@@ -294,6 +294,7 @@
 #![feature(lang_items)]
 #![feature(link_cfg)]
 #![feature(linkage)]
+#![feature(macro_metavar_expr)]
 #![feature(macro_metavar_expr_concat)]
 #![feature(maybe_uninit_fill)]
 #![feature(min_specialization)]

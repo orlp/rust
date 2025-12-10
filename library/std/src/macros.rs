@@ -349,6 +349,7 @@ macro_rules! eprintln {
 #[macro_export]
 #[cfg_attr(not(test), rustc_diagnostic_item = "dbg_macro")]
 #[stable(feature = "dbg_macro", since = "1.32.0")]
+#[allow_internal_unstable(macro_metavar_expr)]
 macro_rules! dbg {
     // NOTE: We cannot use `concat!` to make a static string as a format argument
     // of `eprintln!` because `file!` could contain a `{` or
@@ -376,6 +377,24 @@ macro_rules! dbg {
         }
     };
     ($($val:expr),+ $(,)?) => {
-        ($($crate::dbg!($val)),+,)
+        {
+            // Eagerly evaluate all arguments then print them one by one while
+            // holding stderr lock to avoid tearing prints.
+            let eager_eval = ($($val),+,);
+            let _lock = $crate::io::stderr().lock();
+            $(
+                $crate::eprintln!(
+                    "[{}:{}:{}] {} = {:#?}",
+                    $crate::file!(),
+                    $crate::line!(),
+                    $crate::column!(),
+                    $crate::stringify!($val),
+                    // The `&T: Debug` check happens here (not in the format literal desugaring)
+                    // to avoid format literal related messages and suggestions.
+                    &eager_eval.${index()} as &dyn $crate::fmt::Debug,
+                )
+            )+;
+            eager_eval
+        }
     };
 }
